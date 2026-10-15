@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>활동 9: 구간별로 다른 운동</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e3a8a 0%, #581c87 50%, #831843 100%);
+    padding: 16px; color: #fff;
+  }
+  @media (min-width: 768px) { body { padding: 32px; } }
+  .container { max-width: 1280px; margin: 0 auto; }
+
+  .header { position: relative; margin-bottom: 24px; text-align: center; padding-top: 8px; }
+  .header h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 8px; }
+  @media (min-width: 768px) { .header h1 { font-size: 2.25rem; } }
+  .header p { font-size: 1.125rem; opacity: .9; }
+  .layout-btn {
+    position: absolute; top: 0; right: 0; z-index: 10;
+    padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 1.125rem; font-weight: 700; background: #fff; color: #1f2937;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,.3); transition: all .2s;
+  }
+  .layout-btn:hover { background: #f3f4f6; }
+  .layout-btn.desktop { background: #a855f7; color: #fff; }
+  .layout-btn.desktop:hover { background: #9333ea; }
+
+  .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center; }
+  .interval-box {
+    background: rgba(255,255,255,.2); backdrop-filter: blur(4px);
+    border-radius: 12px; padding: 16px; max-width: 672px; margin: 0 auto 16px;
+  }
+  .interval-box h3 { text-align: center; font-weight: 700; margin-bottom: 12px; }
+  .int-btn {
+    padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer;
+    font-weight: 600; color: #1f2937; background: rgba(255,255,255,.5); transition: all .2s;
+  }
+  .int-btn:hover { background: rgba(255,255,255,.7); }
+  .int-btn.active { background: #eab308; color: #fff; transform: scale(1.05); box-shadow: 0 10px 15px -3px rgba(0,0,0,.3); }
+  .divider { width: 1px; height: 32px; background: rgba(255,255,255,.4); }
+  .toggle-btn {
+    padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer;
+    font-weight: 600; background: #9ca3af; color: #374151; transition: all .2s;
+  }
+  .toggle-btn.active { background: #3b82f6; color: #fff; box-shadow: 0 10px 15px -3px rgba(0,0,0,.3); }
+
+  .controls { margin-bottom: 24px; }
+  .buttons { display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 16px 32px; border: none; border-radius: 12px;
+    color: #fff; font-size: 1.125rem; font-weight: 700; cursor: pointer;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,.3); transition: background .2s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn svg { width: 24px; height: 24px; }
+  .btn-play { background: #22c55e; }
+  .btn-play:hover { background: #16a34a; }
+  .btn-play:disabled { background: #6b7280; cursor: not-allowed; }
+  .btn-reset { background: #f97316; }
+  .btn-reset:hover { background: #ea580c; }
+  .timer-wrap { display: flex; justify-content: center; }
+  .timer {
+    min-width: 140px; padding: 16px 24px; text-align: center; font-size: 1.875rem; font-weight: 700;
+    background: rgba(29, 78, 216, .8); border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,.3);
+  }
+
+  /* 레이아웃: 모바일은 자취→위치→속도→표, 데스크탑은 2×2 (자취·위치 / 표·속도) */
+  .layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  #cardTrace { order: 1; } #cardPos { order: 2; } #cardVel { order: 3; } #cardTable { order: 4; }
+  .layout.desktop { grid-template-columns: 1fr 1fr; }
+  .layout.desktop #cardTable { order: 3; }
+  .layout.desktop #cardVel { order: 4; }
+
+  .panel {
+    background: #fff; border-radius: 16px; padding: 16px; color: #1f2937;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,.4);
+  }
+  @media (min-width: 768px) { .panel { padding: 24px; } }
+  .panel h2 { font-size: 1.25rem; font-weight: 700; text-align: center; margin-bottom: 12px; }
+  @media (min-width: 768px) { .panel h2 { font-size: 1.5rem; margin-bottom: 16px; } }
+  .panel h3 { font-size: 1.125rem; font-weight: 700; text-align: center; margin-bottom: 12px; }
+  .panel .hint { text-align: center; color: #4b5563; font-size: .875rem; margin-bottom: 12px; }
+  .svg-wrap { overflow-x: auto; }
+  .svg-wrap svg { width: 100%; display: block; border: 4px solid #d1d5db; border-radius: 12px; touch-action: none; user-select: none; }
+  .legend { margin-top: 16px; display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: .875rem; font-weight: 600; }
+  .legend-item .dot { width: 16px; height: 16px; border-radius: 50%; }
+  .legend-item .sq { width: 16px; height: 16px; }
+  .legend-item .bar { width: 32px; height: 3px; }
+
+  .table-scroll { overflow-y: auto; max-height: 384px; }
+  table { width: 100%; font-size: .875rem; border-collapse: collapse; }
+  th, td { padding: 8px 12px; text-align: center; }
+  thead th { position: sticky; top: 0; font-weight: 700; background: #dbeafe; border: 1px solid #93c5fd; }
+  td { border: 1px solid #bfdbfe; }
+  tbody tr:hover { background: #eff6ff; }
+  tbody tr.change { background: #fef3c7; }
+  tbody tr.current { background: #bfdbfe; font-weight: 700; }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+  .pulse { animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite; }
+
+  .tick { font-size: 14px; fill: #374151; font-weight: 700; }
+  .tick-zero { font-size: 20px; fill: #111827; font-weight: 700; }
+  .tick-zero-sm { font-size: 16px; fill: #111827; font-weight: 700; }
+  .axis-label { font-size: 14px; fill: #4b5563; font-weight: 600; }
+  .pt-label { font-size: 12px; font-weight: 700; pointer-events: none; }
+  .grab { cursor: grab; }
+  .grabbing { cursor: grabbing; }
+  .home-link { position: fixed; top: 10px; left: 10px; z-index: 50; padding: 6px 12px; border-radius: 8px;
+    background: rgba(0,0,0,.45); color: #fff; font-size: .8rem; font-weight: 600; text-decoration: none; backdrop-filter: blur(4px); }
+  .home-link:hover { background: rgba(0,0,0,.65); }
+</style>
+</head>
+<body>
+<a class="home-link" href="../index.html">← 활동 목록</a>
+<div class="container">
+  <div class="header">
+    <button id="layoutBtn" class="layout-btn">💻 데스크탑</button>
+    <h1>활동 9: 구간별로 다른 운동</h1>
+    <p>등속 → 가속 → 등속 운동 (변화점 드래그 가능)</p>
+  </div>
+
+  <div class="interval-box">
+    <h3>자취 시간 간격 설정</h3>
+    <div class="row">
+      <button class="int-btn" data-interval="0.2">0.2초</button>
+      <button class="int-btn" data-interval="0.5">0.5초</button>
+      <button class="int-btn active" data-interval="1">1초</button>
+      <div class="divider"></div>
+      <button id="traceToggle" class="toggle-btn active">자취 숨기기</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="buttons">
+      <button id="playBtn" class="btn btn-play">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><rect x="14" y="4" width="4" height="16" rx="1"></rect><rect x="6" y="4" width="4" height="16" rx="1"></rect></svg>
+        <span id="playLabel">시작</span>
+      </button>
+      <button id="resetBtn" class="btn btn-reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        다시하기
+      </button>
+    </div>
+    <div class="timer-wrap"><div class="timer"><span id="timeDisplay">0.0초</span></div></div>
+  </div>
+
+  <div class="layout" id="layout">
+    <div class="panel" id="cardTrace">
+      <h2>동적 자취</h2>
+      <div class="svg-wrap"><svg id="svgTrace" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:#10b981;border:2px solid #065f46"></span>시작점</div>
+        <div class="legend-item"><span class="dot" style="background:#f59e0b;border:2px solid #b45309"></span>속력 변화 지점</div>
+        <div class="legend-item"><span class="dot" style="background:#ef4444;border:2px solid #991b1b"></span>끝점</div>
+        <div class="legend-item"><span class="dot" style="background:#3b82f6"></span>자취</div>
+        <div class="legend-item"><span class="dot pulse" style="background:#8b5cf6"></span>현재 위치</div>
+      </div>
+    </div>
+
+    <div class="panel" id="cardPos">
+      <h2>위치-시간 그래프</h2>
+      <p class="hint">속력 변화 지점을 드래그하여 운동을 조절하세요</p>
+      <div class="svg-wrap"><svg id="svgPos" viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:#10b981;border:2px solid #065f46"></span>시작점</div>
+        <div class="legend-item"><span class="dot" style="background:#f59e0b;border:2px solid #b45309"></span>속력 변화 지점 (드래그 가능)</div>
+        <div class="legend-item"><span class="dot" style="background:#ef4444;border:2px solid #991b1b"></span>끝점</div>
+        <div class="legend-item"><span class="bar" style="background:#3b82f6"></span>등속 구간</div>
+        <div class="legend-item"><span class="bar" style="background:#10b981"></span>가속 구간</div>
+        <div class="legend-item"><span class="dot pulse" style="background:#8b5cf6"></span>현재 위치</div>
+      </div>
+    </div>
+
+    <div class="panel" id="cardVel">
+      <h2>속도-시간 그래프</h2>
+      <div class="svg-wrap"><svg id="svgVel" viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="legend">
+        <div class="legend-item"><span class="sq" style="background:#3b82f6"></span>등속 구간</div>
+        <div class="legend-item"><span class="sq" style="background:#10b981"></span>가속 구간</div>
+        <div class="legend-item"><span class="sq pulse" style="background:#8b5cf6"></span>현재 속도</div>
+      </div>
+    </div>
+
+    <div class="panel" id="cardTable">
+      <h3>시간과 위치</h3>
+      <div class="table-scroll">
+        <table><thead><tr><th>시간 (초)</th><th>위치 (m)</th></tr></thead><tbody id="tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ===== 파라미터 =====
+  const SPEED = 2;
+  const startPos = 0, changeTime = 4, accelDuration = 1, endTime = 9;
+  let speed1 = 2, speed2 = 1;
+
+  // ===== 상태 =====
+  let isPlaying = false, showTraces = true, dragging = false, desktop = false;
+  let smoothTime = 0, traceInterval = 1, rafId = null;
+  let traces = [];
+
+  // ===== 운동 계산 (등속 → 가속 → 등속) =====
+  const accelEnd = () => changeTime + accelDuration;
+  function getPosition(t) {
+    if (t <= changeTime) return startPos + speed1 * t;
+    const a = (speed2 - speed1) / accelDuration;
+    const pChange = startPos + speed1 * changeTime;
+    if (t <= accelEnd()) { const ta = t - changeTime; return pChange + speed1 * ta + 0.5 * a * ta * ta; }
+    const pAccelEnd = pChange + speed1 * accelDuration + 0.5 * a * accelDuration * accelDuration;
+    return pAccelEnd + speed2 * (t - accelEnd());
+  }
+  function getVelocity(t) {
+    if (t <= changeTime) return speed1;
+    if (t <= accelEnd()) return speed1 + (speed2 - speed1) * ((t - changeTime) / accelDuration);
+    return speed2;
+  }
+  function range() {
+    const cp = getPosition(changeTime), ap = getPosition(accelEnd()), fp = getPosition(endTime);
+    return {
+      minPos: Math.min(startPos, fp, cp, ap) - 2,
+      maxPos: Math.max(startPos, fp, cp, ap) + 2,
+      vAbs: Math.max(Math.abs(speed1), Math.abs(speed2)) + 1,
+      cp, ap, fp
+    };
+  }
+
+  // ===== DOM =====
+  const $ = id => document.getElementById(id);
+  const svgTrace = $('svgTrace'), svgPos = $('svgPos'), svgVel = $('svgVel'), tbody = $('tbody');
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+  const tX = t => 100 + (t / endTime) * 550;
+
+  // ===== 동적 자취 =====
+  function renderTrace() {
+    const { minPos, maxPos, cp, fp } = range();
+    const toX = p => 50 + ((p - minPos) / (maxPos - minPos)) * 600;
+    clear(svgTrace);
+    svgTrace.appendChild(el('line', { x1: 50, y1: 150, x2: 650, y2: 150, stroke: '#374151', 'stroke-width': 5 }));
+    for (let v = Math.ceil(minPos); v <= maxPos; v++) {
+      const x = toX(v), z = v === 0;
+      svgTrace.appendChild(el('line', { x1: x, y1: z ? 135 : 140, x2: x, y2: z ? 165 : 160, stroke: '#374151', 'stroke-width': z ? 5 : 2 }));
+      svgTrace.appendChild(el('text', { x, y: z ? 200 : 180, 'text-anchor': 'middle', class: z ? 'tick-zero' : 'tick' }, v));
+    }
+    svgTrace.appendChild(el('circle', { cx: toX(startPos), cy: 150, r: 10, fill: '#10b981', stroke: '#065f46', 'stroke-width': 2 }));
+    svgTrace.appendChild(el('circle', { cx: toX(cp), cy: 150, r: 10, fill: '#f59e0b', stroke: '#b45309', 'stroke-width': 2 }));
+    svgTrace.appendChild(el('circle', { cx: toX(fp), cy: 150, r: 10, fill: '#ef4444', stroke: '#991b1b', 'stroke-width': 2 }));
+    if (showTraces) traces.forEach(tr => {
+      const x = toX(tr.pos);
+      if (x >= 50 && x <= 650) svgTrace.appendChild(el('circle', { cx: x, cy: 150, r: 6, fill: '#3b82f6', opacity: 0.8 }));
+    });
+    const cur = getPosition(smoothTime);
+    if (smoothTime > 0 && cur >= minPos && cur <= maxPos)
+      svgTrace.appendChild(el('circle', { cx: toX(cur), cy: 150, r: 10, fill: '#8b5cf6', class: 'pulse' }));
+    svgTrace.appendChild(el('text', { x: 350, y: 230, 'text-anchor': 'middle', class: 'axis-label' }, '위치 (m)'));
+  }
+
+  // ===== 위치-시간 =====
+  function renderPos() {
+    const { minPos, maxPos, cp, ap, fp } = range();
+    const pY = p => 280 - ((p - minPos) / (maxPos - minPos)) * 210;
+    clear(svgPos);
+    svgPos.appendChild(el('line', { x1: 100, y1: 50, x2: 100, y2: 280, stroke: '#374151', 'stroke-width': 3 }));
+    svgPos.appendChild(el('line', { x1: 100, y1: 280, x2: 650, y2: 280, stroke: '#374151', 'stroke-width': 3 }));
+    for (let v = Math.ceil(minPos / 2) * 2; v <= maxPos; v += 2) {
+      const y = pY(v), z = v === 0;
+      svgPos.appendChild(el('line', { x1: 95, y1: y, x2: 105, y2: y, stroke: '#374151', 'stroke-width': z ? 3 : 2 }));
+      svgPos.appendChild(el('text', { x: 80, y: y + 5, 'text-anchor': 'end', class: z ? 'tick-zero-sm' : 'tick' }, v));
+      svgPos.appendChild(el('line', { x1: 100, y1: y, x2: 650, y2: y, stroke: '#e5e7eb', 'stroke-width': 1, opacity: 0.5 }));
+    }
+    for (let t = 0; t <= endTime; t++) {
+      const x = tX(t), z = t === 0;
+      svgPos.appendChild(el('line', { x1: x, y1: 275, x2: x, y2: 285, stroke: '#374151', 'stroke-width': z ? 3 : 2 }));
+      svgPos.appendChild(el('text', { x, y: 300, 'text-anchor': 'middle', class: z ? 'tick-zero-sm' : 'tick' }, t));
+      svgPos.appendChild(el('line', { x1: x, y1: 50, x2: x, y2: 280, stroke: '#e5e7eb', 'stroke-width': 1, opacity: 0.5 }));
+    }
+    // 3구간
+    svgPos.appendChild(el('line', { x1: tX(0), y1: pY(startPos), x2: tX(changeTime), y2: pY(cp), stroke: '#3b82f6', 'stroke-width': 4 }));
+    let d = 'M ' + tX(changeTime) + ' ' + pY(cp);
+    for (let i = 1; i <= 20; i++) { const t = changeTime + accelDuration * (i / 20); d += ' L ' + tX(t) + ' ' + pY(getPosition(t)); }
+    svgPos.appendChild(el('path', { d, stroke: '#10b981', 'stroke-width': 4, fill: 'none' }));
+    svgPos.appendChild(el('line', { x1: tX(accelEnd()), y1: pY(ap), x2: tX(endTime), y2: pY(fp), stroke: '#3b82f6', 'stroke-width': 4 }));
+    // 시작점
+    svgPos.appendChild(el('circle', { cx: tX(0), cy: pY(startPos), r: 8, fill: '#10b981', stroke: '#065f46', 'stroke-width': 2 }));
+    svgPos.appendChild(el('text', { x: tX(0), y: pY(startPos) - 12, 'text-anchor': 'middle', class: 'pt-label', fill: '#15803d' }, '시작'));
+    // 변화점 (드래그)
+    const g = el('g', { class: isPlaying ? '' : (dragging ? 'grabbing' : 'grab') });
+    g.appendChild(el('circle', { cx: tX(changeTime), cy: pY(cp), r: 30, fill: 'transparent' }));
+    g.appendChild(el('circle', { cx: tX(changeTime), cy: pY(cp), r: 12, fill: '#f59e0b', stroke: '#b45309', 'stroke-width': 3, opacity: dragging ? 0.7 : 1, 'pointer-events': 'none' }));
+    g.appendChild(el('text', { x: tX(changeTime), y: pY(cp) - 18, 'text-anchor': 'middle', class: 'pt-label', fill: '#b45309' }, '변화'));
+    g.addEventListener('pointerdown', onDragStart);
+    svgPos.appendChild(g);
+    // 끝점
+    svgPos.appendChild(el('circle', { cx: tX(endTime), cy: pY(fp), r: 8, fill: '#ef4444', stroke: '#991b1b', 'stroke-width': 2 }));
+    svgPos.appendChild(el('text', { x: tX(endTime), y: pY(fp) - 12, 'text-anchor': 'middle', class: 'pt-label', fill: '#b91c1c' }, '끝'));
+    if (smoothTime > 0) {
+      const x = tX(smoothTime);
+      svgPos.appendChild(el('line', { x1: x, y1: 50, x2: x, y2: 280, stroke: '#8b5cf6', 'stroke-width': 2, 'stroke-dasharray': '5,5', opacity: 0.7 }));
+      svgPos.appendChild(el('circle', { cx: x, cy: pY(getPosition(smoothTime)), r: 8, fill: '#8b5cf6', class: 'pulse' }));
+    }
+    svgPos.appendChild(el('text', { x: 40, y: 165, 'text-anchor': 'middle', class: 'axis-label', transform: 'rotate(-90 40 165)' }, '위치 (m)'));
+    svgPos.appendChild(el('text', { x: 375, y: 330, 'text-anchor': 'middle', class: 'axis-label' }, '시간 (초)'));
+  }
+
+  // ===== 속도-시간 =====
+  function renderVel() {
+    const { vAbs } = range();
+    const vY = v => 150 - (v / vAbs) * 90;
+    clear(svgVel);
+    svgVel.appendChild(el('line', { x1: 100, y1: 50, x2: 100, y2: 250, stroke: '#374151', 'stroke-width': 3 }));
+    svgVel.appendChild(el('line', { x1: 100, y1: 250, x2: 650, y2: 250, stroke: '#374151', 'stroke-width': 3 }));
+    svgVel.appendChild(el('line', { x1: 100, y1: 150, x2: 650, y2: 150, stroke: '#9ca3af', 'stroke-width': 2, 'stroke-dasharray': '5,5' }));
+    for (let v = Math.ceil(-vAbs); v <= vAbs; v++) {
+      const y = vY(v), z = v === 0;
+      svgVel.appendChild(el('line', { x1: 95, y1: y, x2: 105, y2: y, stroke: '#374151', 'stroke-width': z ? 3 : 2 }));
+      svgVel.appendChild(el('text', { x: 80, y: y + 5, 'text-anchor': 'end', class: z ? 'tick-zero-sm' : 'tick' }, v));
+    }
+    for (let t = 0; t <= endTime; t++) {
+      const x = tX(t);
+      svgVel.appendChild(el('line', { x1: x, y1: 245, x2: x, y2: 255, stroke: '#374151', 'stroke-width': 2 }));
+      svgVel.appendChild(el('text', { x, y: 270, 'text-anchor': 'middle', class: 'tick' }, t));
+    }
+    svgVel.appendChild(el('line', { x1: tX(0), y1: vY(speed1), x2: tX(changeTime), y2: vY(speed1), stroke: speed1 >= 0 ? '#3b82f6' : '#ef4444', 'stroke-width': 4 }));
+    svgVel.appendChild(el('line', { x1: tX(changeTime), y1: vY(speed1), x2: tX(accelEnd()), y2: vY(speed2), stroke: '#10b981', 'stroke-width': 4 }));
+    svgVel.appendChild(el('line', { x1: tX(accelEnd()), y1: vY(speed2), x2: tX(endTime), y2: vY(speed2), stroke: speed2 >= 0 ? '#3b82f6' : '#ef4444', 'stroke-width': 4 }));
+    if (smoothTime > 0) {
+      const x = tX(smoothTime);
+      svgVel.appendChild(el('line', { x1: x, y1: 50, x2: x, y2: 250, stroke: '#8b5cf6', 'stroke-width': 2, 'stroke-dasharray': '5,5', opacity: 0.7 }));
+      svgVel.appendChild(el('circle', { cx: x, cy: vY(getVelocity(smoothTime)), r: 8, fill: '#8b5cf6', class: 'pulse' }));
+    }
+    svgVel.appendChild(el('text', { x: 40, y: 150, 'text-anchor': 'middle', class: 'axis-label', transform: 'rotate(-90 40 150)' }, '속도 (m/s)'));
+    svgVel.appendChild(el('text', { x: 375, y: 290, 'text-anchor': 'middle', class: 'axis-label' }, '시간 (초)'));
+  }
+
+  function renderTable() {
+    tbody.innerHTML = '';
+    traces.forEach(tr => {
+      const row = document.createElement('tr');
+      if (Math.abs(smoothTime - tr.time) < 0.1) row.className = 'current';
+      else if (Math.abs(tr.time - changeTime) < 0.1) row.className = 'change';
+      row.innerHTML = '<td>' + tr.time.toFixed(1) + '</td><td>' + tr.pos.toFixed(2) + '</td>';
+      tbody.appendChild(row);
+    });
+  }
+  function renderControls() {
+    $('timeDisplay').textContent = smoothTime.toFixed(1) + '초';
+    $('playBtn').disabled = smoothTime >= endTime;
+    $('playIcon').style.display = isPlaying ? 'none' : '';
+    $('pauseIcon').style.display = isPlaying ? '' : 'none';
+    $('playLabel').textContent = isPlaying ? '일시정지' : '시작';
+    const tt = $('traceToggle');
+    tt.textContent = showTraces ? '자취 숨기기' : '자취 보이기';
+    tt.classList.toggle('active', showTraces);
+  }
+  function render() { renderControls(); renderTrace(); renderPos(); renderVel(); renderTable(); }
+
+  // ===== 드래그 =====
+  let dragFinalPos = 0;
+  function onDragStart(e) {
+    if (isPlaying) return;
+    e.preventDefault(); e.stopPropagation();
+    dragging = true;
+    dragFinalPos = getPosition(endTime); // 끝점 고정
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+    render();
+  }
+  function onDragMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const { minPos, maxPos } = range();
+    const rect = svgPos.getBoundingClientRect();
+    const mouseY = (e.clientY - rect.top) * (350 / rect.height);
+    const changePos = Math.max(minPos, Math.min(maxPos, minPos + ((280 - mouseY) / 210) * (maxPos - minPos)));
+    const newSpeed1 = (changePos - startPos) / changeTime;
+    const accelEndPos = changePos + newSpeed1 * accelDuration + 0.5 * ((speed2 - newSpeed1) / accelDuration) * accelDuration * accelDuration;
+    const remaining = endTime - changeTime - accelDuration;
+    const newSpeed2 = remaining > 0 ? (dragFinalPos - accelEndPos) / remaining : speed2;
+    speed1 = newSpeed1; speed2 = newSpeed2;
+    reset();
+  }
+  function onDragEnd() {
+    dragging = false;
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+    render();
+  }
+
+  // ===== 애니메이션 =====
+  function addTrace(t) { traces.push({ time: t, pos: getPosition(t), speed: getVelocity(t) }); }
+  function start() {
+    if (smoothTime >= endTime) return;
+    isPlaying = true;
+    const startTimestamp = performance.now(), startSmooth = smoothTime;
+    let lastTraceTime = Math.floor(smoothTime / traceInterval) * traceInterval;
+    const animate = ts => {
+      const t = startSmooth + ((ts - startTimestamp) / 1000) * SPEED;
+      if (t >= endTime) {
+        isPlaying = false; smoothTime = endTime;
+        if (Math.abs(lastTraceTime - endTime) >= traceInterval * 0.99) addTrace(endTime);
+        rafId = null; render(); return;
+      }
+      smoothTime = t;
+      const cur = Math.floor(t / traceInterval) * traceInterval;
+      if (cur > lastTraceTime && cur <= endTime) { lastTraceTime = cur; addTrace(cur); }
+      render();
+      rafId = requestAnimationFrame(animate);
+    };
+    rafId = requestAnimationFrame(animate);
+    render();
+  }
+  function pause() { isPlaying = false; if (rafId) { cancelAnimationFrame(rafId); rafId = null; } render(); }
+  function reset() {
+    isPlaying = false; if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    smoothTime = 0; traces = [{ time: 0, pos: startPos, speed: speed1 }];
+    render();
+  }
+
+  // ===== 이벤트 =====
+  $('playBtn').addEventListener('click', () => (isPlaying ? pause() : start()));
+  $('resetBtn').addEventListener('click', reset);
+  document.querySelectorAll('.int-btn').forEach(b => b.addEventListener('click', () => {
+    traceInterval = parseFloat(b.dataset.interval);
+    document.querySelectorAll('.int-btn').forEach(x => x.classList.toggle('active', x === b));
+    reset();
+  }));
+  $('traceToggle').addEventListener('click', () => { showTraces = !showTraces; render(); });
+  $('layoutBtn').addEventListener('click', () => {
+    desktop = !desktop;
+    $('layout').classList.toggle('desktop', desktop);
+    const b = $('layoutBtn');
+    b.textContent = desktop ? '📱 모바일' : '💻 데스크탑';
+    b.classList.toggle('desktop', desktop);
+  });
+
+  reset();
+})();
+</script>
+</body>
+</html>
